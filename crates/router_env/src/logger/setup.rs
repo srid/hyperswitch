@@ -3,19 +3,19 @@
 use std::time::Duration;
 
 use opentelemetry::{
-    global, runtime,
-    sdk::{
-        export::metrics::aggregation::cumulative_temporality_selector,
-        metrics::{controllers::BasicController, selectors::simple},
-        propagation::TraceContextPropagator,
-        trace,
-        trace::BatchConfig,
-        Resource,
-    },
+    global,
     trace::{TraceContextExt, TraceState},
     KeyValue,
 };
 use opentelemetry_otlp::{TonicExporterBuilder, WithExportConfig};
+use opentelemetry_sdk::{
+    export::metrics::aggregation::cumulative_temporality_selector,
+    metrics::{controllers::BasicController, selectors::simple},
+    propagation::TraceContextPropagator,
+    trace,
+    trace::BatchConfig,
+    Resource,
+};
 use serde_json::ser::{CompactFormatter, PrettyFormatter};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{fmt, prelude::*, util::SubscriberInitExt, EnvFilter, Layer};
@@ -265,7 +265,7 @@ fn setup_tracing_pipeline(
         .with_exporter(get_opentelemetry_exporter(config))
         .with_batch_config(batch_config)
         .with_trace_config(trace_config)
-        .install_batch(opentelemetry::runtime::TokioCurrentThread)
+        .install_batch(opentelemetry_sdk::runtime::TokioCurrentThread)
         .map(|tracer| tracing_opentelemetry::layer().with_tracer(tracer));
 
     if config.ignore_errors {
@@ -298,7 +298,7 @@ fn setup_metrics_pipeline(config: &config::LogTelemetry) -> Option<BasicControll
             simple::histogram(histogram_buckets),
             cumulative_temporality_selector(),
             // This would have to be updated if a different web framework is used
-            runtime::TokioCurrentThread,
+            opentelemetry_sdk::runtime::TokioCurrentThread,
         )
         .with_exporter(get_opentelemetry_exporter(config))
         .with_period(Duration::from_secs(3))

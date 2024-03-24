@@ -5693,6 +5693,7 @@ dependencies = [
  "once_cell",
  "opentelemetry",
  "opentelemetry-otlp",
+ "opentelemetry_sdk",
  "rustc-hash",
  "serde",
  "serde_json",
