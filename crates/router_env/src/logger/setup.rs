@@ -9,11 +9,12 @@ use opentelemetry::{
 };
 use opentelemetry_otlp::{TonicExporterBuilder, WithExportConfig};
 use opentelemetry_sdk::{
-    export::metrics::aggregation::cumulative_temporality_selector,
-    metrics::{controllers::BasicController, selectors::simple},
+    metrics::{
+        reader::{AggregationSelector, DefaultTemporalitySelector},
+        Aggregation, InstrumentKind, MeterProvider,
+    },
     propagation::TraceContextPropagator,
-    trace,
-    trace::BatchConfig,
+    trace::{self, BatchConfig},
     Resource,
 };
 use serde_json::ser::{CompactFormatter, PrettyFormatter};
@@ -26,7 +27,7 @@ use crate::{config, FormattingLayer, StorageSubscription};
 #[derive(Debug)]
 pub struct TelemetryGuard {
     _log_guards: Vec<WorkerGuard>,
-    _metrics_controller: Option<BasicController>,
+    _metrics_provider: Option<MeterProvider>,
 }
 
 /// Setup logging sub-system specifying the logging configuration, service (binary) name, and a
@@ -45,7 +46,7 @@ pub fn setup(
     } else {
         None
     };
-    let _metrics_controller = if config.telemetry.metrics_enabled {
+    let _metrics_provider = if config.telemetry.metrics_enabled {
         setup_metrics_pipeline(&config.telemetry)
     } else {
         None
@@ -128,7 +129,7 @@ pub fn setup(
     // dropped
     TelemetryGuard {
         _log_guards: guards,
-        _metrics_controller,
+        _metrics_provider,
     }
 }
 
@@ -203,22 +204,16 @@ impl<T: trace::ShouldSample + Clone + 'static> trace::ShouldSample for Condition
         span_kind: &opentelemetry::trace::SpanKind,
         attributes: &opentelemetry::trace::OrderMap<opentelemetry::Key, opentelemetry::Value>,
         links: &[opentelemetry::trace::Link],
-        instrumentation_library: &opentelemetry::InstrumentationLibrary,
     ) -> opentelemetry::trace::SamplingResult {
         match attributes
             .get(&opentelemetry::Key::new("http.route"))
             .map_or(self.0.default, |inner| {
                 self.0.should_trace_url(&inner.as_str())
             }) {
-            true => self.1.should_sample(
-                parent_context,
-                trace_id,
-                name,
-                span_kind,
-                attributes,
-                links,
-                instrumentation_library,
-            ),
+            true => {
+                self.1
+                    .should_sample(parent_context, trace_id, name, span_kind, attributes, links)
+            }
             false => opentelemetry::trace::SamplingResult {
                 decision: opentelemetry::trace::SamplingDecision::Drop,
                 attributes: Vec::new(),
@@ -281,25 +276,14 @@ fn setup_tracing_pipeline(
     }
 }
 
-fn setup_metrics_pipeline(config: &config::LogTelemetry) -> Option<BasicController> {
-    let histogram_buckets = {
-        let mut init = 0.01;
-        let mut buckets: [f64; 15] = [0.0; 15];
-
-        for bucket in &mut buckets {
-            init *= 2.0;
-            *bucket = init;
-        }
-        buckets
-    };
-
+fn setup_metrics_pipeline(config: &config::LogTelemetry) -> Option<MeterProvider> {
     let metrics_controller_result = opentelemetry_otlp::new_pipeline()
         .metrics(
-            simple::histogram(histogram_buckets),
-            cumulative_temporality_selector(),
             // This would have to be updated if a different web framework is used
             opentelemetry_sdk::runtime::TokioCurrentThread,
         )
+        .with_temporality_selector(DefaultTemporalitySelector::new())
+        .with_aggregation_selector(CustomAggregationSelector)
         .with_exporter(get_opentelemetry_exporter(config))
         .with_period(Duration::from_secs(3))
         .with_timeout(Duration::from_secs(10))
@@ -363,4 +347,35 @@ fn get_envfilter(
                     },
                 )
         })
+}
+
+struct CustomAggregationSelector;
+
+impl AggregationSelector for CustomAggregationSelector {
+    fn aggregation(&self, kind: InstrumentKind) -> Aggregation {
+        match kind {
+            InstrumentKind::Counter
+            | InstrumentKind::UpDownCounter
+            | InstrumentKind::ObservableCounter
+            | InstrumentKind::ObservableUpDownCounter => Aggregation::Sum,
+            InstrumentKind::ObservableGauge => Aggregation::LastValue,
+            InstrumentKind::Histogram => {
+                let histogram_buckets = {
+                    let mut init = 0.01;
+                    let mut buckets: [f64; 15] = [0.0; 15];
+
+                    for bucket in &mut buckets {
+                        init *= 2.0;
+                        *bucket = init;
+                    }
+                    buckets.to_vec()
+                };
+
+                Aggregation::ExplicitBucketHistogram {
+                    boundaries: histogram_buckets,
+                    record_min_max: true,
+                }
+            }
+        }
+    }
 }
