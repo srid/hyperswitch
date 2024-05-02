@@ -149,7 +149,6 @@ pub async fn create_api_key(
         .attach_printable("Failed to insert new API key")?;
 
     metrics::API_KEY_CREATED.add(
-        &metrics::CONTEXT,
         1,
         &[metrics::request::add_attributes("merchant", merchant_id)],
     );
@@ -234,7 +233,6 @@ pub async fn add_api_key_expiry_task(
             )
         })?;
     metrics::TASKS_ADDED_COUNT.add(
-        &metrics::CONTEXT,
         1,
         &[metrics::request::add_attributes("flow", "ApiKeyExpiry")],
     );
@@ -405,7 +403,7 @@ pub async fn revoke_api_key(
         .await
         .to_not_found_response(errors::ApiErrorResponse::ApiKeyNotFound)?;
 
-    metrics::API_KEY_REVOKED.add(&metrics::CONTEXT, 1, &[]);
+    metrics::API_KEY_REVOKED.add(1, &[]);
 
     #[cfg(feature = "email")]
     {

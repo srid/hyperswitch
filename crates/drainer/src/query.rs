@@ -40,17 +40,17 @@ impl ExecuteQuery for kv::DBOperation {
             Box::pin(common_utils::date_time::time_it(|| self.execute(&conn))).await;
 
         push_drainer_delay(pushed_at, operation, table, tags);
-        metrics::QUERY_EXECUTION_TIME.record(&metrics::CONTEXT, execution_time, tags);
+        metrics::QUERY_EXECUTION_TIME.record(execution_time, tags);
 
         match result {
             Ok(result) => {
                 logger::info!(operation = operation, table = table, ?result);
-                metrics::SUCCESSFUL_QUERY_EXECUTION.add(&metrics::CONTEXT, 1, tags);
+                metrics::SUCCESSFUL_QUERY_EXECUTION.add(1, tags);
                 Ok(())
             }
             Err(err) => {
                 logger::error!(operation = operation, table = table, ?err);
-                metrics::ERRORS_WHILE_QUERY_EXECUTION.add(&metrics::CONTEXT, 1, tags);
+                metrics::ERRORS_WHILE_QUERY_EXECUTION.add(1, tags);
                 Err(err)
             }
         }
@@ -68,5 +68,5 @@ fn push_drainer_delay(pushed_at: i64, operation: &str, table: &str, tags: &[metr
         delay = format!("{delay} secs")
     );
 
-    metrics::DRAINER_DELAY_SECONDS.record(&metrics::CONTEXT, delay, tags);
+    metrics::DRAINER_DELAY_SECONDS.record(delay, tags);
 }

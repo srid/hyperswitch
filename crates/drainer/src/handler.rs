@@ -67,7 +67,7 @@ impl Handler {
         let jobs_picked = Arc::new(atomic::AtomicU8::new(0));
 
         while self.running.load(atomic::Ordering::SeqCst) {
-            metrics::DRAINER_HEALTH.add(&metrics::CONTEXT, 1, &[]);
+            metrics::DRAINER_HEALTH.add(1, &[]);
             if self.store.is_stream_available(stream_index).await {
                 let _task_handle = tokio::spawn(
                     drainer_handler(
@@ -94,7 +94,7 @@ impl Handler {
     pub(crate) async fn shutdown_listener(&self, mut rx: mpsc::Receiver<()>) {
         while let Some(_c) = rx.recv().await {
             logger::info!("Awaiting shutdown!");
-            metrics::SHUTDOWN_SIGNAL_RECEIVED.add(&metrics::CONTEXT, 1, &[]);
+            metrics::SHUTDOWN_SIGNAL_RECEIVED.add(1, &[]);
             let shutdown_started = tokio::time::Instant::now();
             rx.close();
 
@@ -103,9 +103,9 @@ impl Handler {
                 time::sleep(self.shutdown_interval).await;
             }
             logger::info!("Terminating drainer");
-            metrics::SUCCESSFUL_SHUTDOWN.add(&metrics::CONTEXT, 1, &[]);
+            metrics::SUCCESSFUL_SHUTDOWN.add(1, &[]);
             let shutdown_ended = shutdown_started.elapsed().as_secs_f64() * 1000f64;
-            metrics::CLEANUP_TIME.record(&metrics::CONTEXT, shutdown_ended, &[]);
+            metrics::CLEANUP_TIME.record(shutdown_ended, &[]);
             self.close();
         }
         logger::info!(
@@ -196,7 +196,7 @@ async fn drainer(
                 if let redis_interface::errors::RedisError::StreamEmptyOrNotAvailable =
                     redis_err.current_context()
                 {
-                    metrics::STREAM_EMPTY.add(&metrics::CONTEXT, 1, &[]);
+                    metrics::STREAM_EMPTY.add(1, &[]);
                     return Ok(());
                 } else {
                     return Err(error);
@@ -212,7 +212,6 @@ async fn drainer(
     let read_count = entries.len();
 
     metrics::JOBS_PICKED_PER_STREAM.add(
-        &metrics::CONTEXT,
         u64::try_from(read_count).unwrap_or(u64::MIN),
         &[metrics::KeyValue {
             key: "stream".into(),
@@ -230,7 +229,6 @@ async fn drainer(
             Err(err) => {
                 logger::error!(operation = "deserialization", err=?err);
                 metrics::STREAM_PARSE_FAIL.add(
-                    &metrics::CONTEXT,
                     1,
                     &[metrics::KeyValue {
                         key: "operation".into(),

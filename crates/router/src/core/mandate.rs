@@ -402,7 +402,6 @@ where
                     .change_context(errors::ApiErrorResponse::MandateUpdateFailed),
             }?;
             metrics::SUBSEQUENT_MANDATE_PAYMENT.add(
-                &metrics::CONTEXT,
                 1,
                 &[metrics::request::add_attributes(
                     "connector",
@@ -461,7 +460,6 @@ where
                 .await
                 .to_duplicate_response(errors::ApiErrorResponse::DuplicateMandate)?;
             metrics::MANDATE_COUNT.add(
-                &metrics::CONTEXT,
                 1,
                 &[metrics::request::add_attributes("connector", connector)],
             );

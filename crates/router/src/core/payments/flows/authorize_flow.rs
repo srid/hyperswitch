@@ -84,7 +84,7 @@ impl Feature<api::Authorize, types::PaymentsAuthorizeData> for types::PaymentsAu
             .await
             .to_payment_failed_response()?;
 
-            metrics::PAYMENT_COUNT.add(&metrics::CONTEXT, 1, &[]); // Metrics
+            metrics::PAYMENT_COUNT.add(1, &[]); // Metrics
             Ok(resp)
         } else {
             Ok(self.clone())
@@ -166,7 +166,6 @@ impl Feature<api::Authorize, types::PaymentsAuthorizeData> for types::PaymentsAu
                     .to_payment_failed_response()?;
 
                 metrics::EXECUTE_PRETASK_COUNT.add(
-                    &metrics::CONTEXT,
                     1,
                     &[
                         metrics::request::add_attributes(
@@ -283,7 +282,6 @@ pub async fn authorize_preprocessing_steps<F: Clone>(
         .to_payment_failed_response()?;
 
         metrics::PREPROCESSING_STEPS_COUNT.add(
-            &metrics::CONTEXT,
             1,
             &[
                 metrics::request::add_attributes("connector", connector.connector_name.to_string()),

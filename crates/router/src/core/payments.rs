@@ -846,7 +846,6 @@ pub trait PaymentRedirectFlow<Ctx: PaymentMethodRetrieve>: Sync {
         req: PaymentsRedirectResponseData,
     ) -> RouterResponse<api::RedirectionResponse> {
         metrics::REDIRECTION_TRIGGERED.add(
-            &metrics::CONTEXT,
             1,
             &[
                 metrics::request::add_attributes(

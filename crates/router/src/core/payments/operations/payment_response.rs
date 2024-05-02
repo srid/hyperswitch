@@ -893,7 +893,7 @@ async fn payment_response_update_tracker<F: Clone, T: types::Capturable>(
                     if router_data.status == enums::AttemptStatus::Charged {
                         payment_data.payment_intent.fingerprint_id =
                             payment_data.payment_attempt.fingerprint_id.clone();
-                        metrics::SUCCESSFUL_PAYMENT.add(&metrics::CONTEXT, 1, &[]);
+                        metrics::SUCCESSFUL_PAYMENT.add(1, &[]);
                     }
 
                     let payment_method_id = payment_data.payment_attempt.payment_method_id.clone();

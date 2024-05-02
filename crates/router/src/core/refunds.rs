@@ -137,7 +137,6 @@ pub async fn trigger_refund_to_gateway(
 
     let storage_scheme = merchant_account.storage_scheme;
     metrics::REFUND_COUNT.add(
-        &metrics::CONTEXT,
         1,
         &[metrics::request::add_attributes(
             "connector",
@@ -262,7 +261,6 @@ pub async fn trigger_refund_to_gateway(
         Ok(response) => {
             if response.refund_status == diesel_models::enums::RefundStatus::Success {
                 metrics::SUCCESSFUL_REFUND.add(
-                    &metrics::CONTEXT,
                     1,
                     &[metrics::request::add_attributes(
                         "connector",
@@ -1101,11 +1099,7 @@ pub async fn add_refund_sync_task(
                 refund.refund_id
             )
         })?;
-    metrics::TASKS_ADDED_COUNT.add(
-        &metrics::CONTEXT,
-        1,
-        &[metrics::request::add_attributes("flow", "Refund")],
-    );
+    metrics::TASKS_ADDED_COUNT.add(1, &[metrics::request::add_attributes("flow", "Refund")]);
 
     Ok(response)
 }

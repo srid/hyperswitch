@@ -1023,7 +1023,6 @@ pub async fn create_payment_connector(
     }
 
     metrics::MCA_CREATE.add(
-        &metrics::CONTEXT,
         1,
         &[
             metrics::request::add_attributes("connector", req.connector_name.to_string()),

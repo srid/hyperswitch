@@ -779,7 +779,6 @@ pub async fn add_payment_method_token<F: Clone, T: types::Tokenizable + Clone>(
             .to_payment_failed_response()?;
 
             metrics::CONNECTOR_PAYMENT_METHOD_TOKENIZATION.add(
-                &metrics::CONTEXT,
                 1,
                 &[
                     metrics::request::add_attributes(

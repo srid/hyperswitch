@@ -145,7 +145,6 @@ pub async fn payments_incoming_webhook_flow<Ctx: PaymentMethodRetrieve>(
                         .unwrap_or(true) =>
                 {
                     metrics::WEBHOOK_PAYMENT_NOT_FOUND.add(
-                        &metrics::CONTEXT,
                         1,
                         &[add_attributes(
                             "merchant_id",
@@ -356,7 +355,7 @@ pub async fn get_or_update_dispute_object(
     let db = &*state.store;
     match option_dispute {
         None => {
-            metrics::INCOMING_DISPUTE_WEBHOOK_NEW_RECORD_METRIC.add(&metrics::CONTEXT, 1, &[]);
+            metrics::INCOMING_DISPUTE_WEBHOOK_NEW_RECORD_METRIC.add(1, &[]);
             let dispute_id = generate_id(consts::ID_LENGTH, "dp");
             let new_dispute = diesel_models::dispute::DisputeNew {
                 dispute_id,
@@ -390,7 +389,7 @@ pub async fn get_or_update_dispute_object(
         }
         Some(dispute) => {
             logger::info!("Dispute Already exists, Updating the dispute details");
-            metrics::INCOMING_DISPUTE_WEBHOOK_UPDATE_RECORD_METRIC.add(&metrics::CONTEXT, 1, &[]);
+            metrics::INCOMING_DISPUTE_WEBHOOK_UPDATE_RECORD_METRIC.add(1, &[]);
             let dispute_status = diesel_models::enums::DisputeStatus::foreign_try_from(event_type)
                 .change_context(errors::ApiErrorResponse::WebhookProcessingFailure)
                 .attach_printable("event type to dispute state conversion failure")?;
@@ -693,7 +692,7 @@ pub async fn disputes_incoming_webhook_flow(
     request_details: &api::IncomingWebhookRequestDetails<'_>,
     event_type: api_models::webhooks::IncomingWebhookEvent,
 ) -> CustomResult<WebhookResponseTracker, errors::ApiErrorResponse> {
-    metrics::INCOMING_DISPUTE_WEBHOOK_METRIC.add(&metrics::CONTEXT, 1, &[]);
+    metrics::INCOMING_DISPUTE_WEBHOOK_METRIC.add(1, &[]);
     if source_verified {
         let db = &*state.store;
         let dispute_details = connector.get_dispute_details(request_details).switch()?;
@@ -738,14 +737,14 @@ pub async fn disputes_incoming_webhook_flow(
             Some(dispute_object.created_at),
         )
         .await?;
-        metrics::INCOMING_DISPUTE_WEBHOOK_MERCHANT_NOTIFIED_METRIC.add(&metrics::CONTEXT, 1, &[]);
+        metrics::INCOMING_DISPUTE_WEBHOOK_MERCHANT_NOTIFIED_METRIC.add(1, &[]);
         Ok(WebhookResponseTracker::Dispute {
             dispute_id: dispute_object.dispute_id,
             payment_id: dispute_object.payment_id,
             status: dispute_object.dispute_status,
         })
     } else {
-        metrics::INCOMING_DISPUTE_WEBHOOK_SIGNATURE_FAILURE_METRIC.add(&metrics::CONTEXT, 1, &[]);
+        metrics::INCOMING_DISPUTE_WEBHOOK_SIGNATURE_FAILURE_METRIC.add(1, &[]);
         Err(report!(
             errors::ApiErrorResponse::WebhookAuthenticationFailed
         ))
@@ -1071,7 +1070,6 @@ async fn trigger_webhook_to_merchant(
         .await;
 
     metrics::WEBHOOK_OUTGOING_COUNT.add(
-        &metrics::CONTEXT,
         1,
         &[metrics::KeyValue::new(
             MERCHANT_ID,
@@ -1224,18 +1222,16 @@ async fn trigger_webhook_to_merchant(
             .change_context(errors::WebhooksFlowError::WebhookEventUpdationFailed)
     };
     let increment_webhook_outgoing_received_count = |merchant_id: String| {
-        metrics::WEBHOOK_OUTGOING_RECEIVED_COUNT.add(
-            &metrics::CONTEXT,
-            1,
-            &[metrics::KeyValue::new(MERCHANT_ID, merchant_id)],
-        )
+        metrics::WEBHOOK_OUTGOING_RECEIVED_COUNT
+            .add(1, &[metrics::KeyValue::new(MERCHANT_ID, merchant_id)])
     };
     let success_response_handler =
         |state: AppState,
          merchant_id: String,
          process_tracker: Option<storage::ProcessTracker>,
          business_status: &'static str| async move {
-            increment_webhook_outgoing_received_count(merchant_id);
+            metrics::WEBHOOK_OUTGOING_RECEIVED_COUNT
+                .add(1, &[metrics::KeyValue::new(MERCHANT_ID, merchant_id)]);
 
             match process_tracker {
                 Some(process_tracker) => state
@@ -1253,11 +1249,8 @@ async fn trigger_webhook_to_merchant(
                                   delivery_attempt: enums::WebhookDeliveryAttempt,
                                   status_code: u16,
                                   log_message: &'static str| {
-        metrics::WEBHOOK_OUTGOING_NOT_RECEIVED_COUNT.add(
-            &metrics::CONTEXT,
-            1,
-            &[metrics::KeyValue::new(MERCHANT_ID, merchant_id)],
-        );
+        metrics::WEBHOOK_OUTGOING_NOT_RECEIVED_COUNT
+            .add(1, &[metrics::KeyValue::new(MERCHANT_ID, merchant_id)]);
 
         let error = report!(errors::WebhooksFlowError::NotReceivedByMerchant);
         logger::warn!(?error, ?delivery_attempt, ?status_code, %log_message);
@@ -1527,7 +1520,6 @@ pub async fn webhooks_core<W: types::OutgoingWebhookType, Ctx: PaymentMethodRetr
     serde_json::Value,
 )> {
     metrics::WEBHOOK_INCOMING_COUNT.add(
-        &metrics::CONTEXT,
         1,
         &[metrics::KeyValue::new(
             MERCHANT_ID,
@@ -1588,7 +1580,6 @@ pub async fn webhooks_core<W: types::OutgoingWebhookType, Ctx: PaymentMethodRetr
             );
 
             metrics::WEBHOOK_EVENT_TYPE_IDENTIFICATION_FAILURE_COUNT.add(
-                &metrics::CONTEXT,
                 1,
                 &[
                     metrics::KeyValue::new(MERCHANT_ID, merchant_account.merchant_id.clone()),
@@ -1703,7 +1694,6 @@ pub async fn webhooks_core<W: types::OutgoingWebhookType, Ctx: PaymentMethodRetr
 
         if source_verified {
             metrics::WEBHOOK_SOURCE_VERIFIED_COUNT.add(
-                &metrics::CONTEXT,
                 1,
                 &[metrics::KeyValue::new(
                     MERCHANT_ID,
@@ -1838,7 +1828,6 @@ pub async fn webhooks_core<W: types::OutgoingWebhookType, Ctx: PaymentMethodRetr
         }
     } else {
         metrics::WEBHOOK_INCOMING_FILTERED_COUNT.add(
-            &metrics::CONTEXT,
             1,
             &[metrics::KeyValue::new(
                 MERCHANT_ID,
@@ -2023,19 +2012,13 @@ pub async fn add_outgoing_webhook_retry_task_to_process_tracker(
 
     match db.insert_process(process_tracker_entry).await {
         Ok(process_tracker) => {
-            crate::routes::metrics::TASKS_ADDED_COUNT.add(
-                &metrics::CONTEXT,
-                1,
-                &[add_attributes("flow", "OutgoingWebhookRetry")],
-            );
+            crate::routes::metrics::TASKS_ADDED_COUNT
+                .add(1, &[add_attributes("flow", "OutgoingWebhookRetry")]);
             Ok(process_tracker)
         }
         Err(error) => {
-            crate::routes::metrics::TASK_ADDITION_FAILURES_COUNT.add(
-                &metrics::CONTEXT,
-                1,
-                &[add_attributes("flow", "OutgoingWebhookRetry")],
-            );
+            crate::routes::metrics::TASK_ADDITION_FAILURES_COUNT
+                .add(1, &[add_attributes("flow", "OutgoingWebhookRetry")]);
             Err(error)
         }
     }

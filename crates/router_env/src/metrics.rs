@@ -1,16 +1,5 @@
 //! Utilities to easily create opentelemetry contexts, meters and metrics.
 
-/// Create a metrics [`Context`][Context] with the specified name.
-///
-/// [Context]: opentelemetry::Context
-#[macro_export]
-macro_rules! metrics_context {
-    ($name:ident) => {
-        pub(crate) static $name: once_cell::sync::Lazy<$crate::opentelemetry::Context> =
-            once_cell::sync::Lazy::new($crate::opentelemetry::Context::current);
-    };
-}
-
 /// Create a global [`Meter`][Meter] with the specified name and an optional description.
 ///
 /// [Meter]: opentelemetry::metrics::Meter

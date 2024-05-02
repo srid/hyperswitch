@@ -52,7 +52,6 @@ impl Feature<api::Void, types::PaymentsCancelData>
         connector_request: Option<services::Request>,
     ) -> RouterResult<Self> {
         metrics::PAYMENT_CANCEL_COUNT.add(
-            &metrics::CONTEXT,
             1,
             &[metrics::request::add_attributes(
                 "connector",

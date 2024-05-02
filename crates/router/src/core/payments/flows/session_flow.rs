@@ -57,7 +57,6 @@ impl Feature<api::Session, types::PaymentsSessionData> for types::PaymentsSessio
         _connector_request: Option<services::Request>,
     ) -> RouterResult<Self> {
         metrics::SESSION_TOKEN_CREATED.add(
-            &metrics::CONTEXT,
             1,
             &[metrics::request::add_attributes(
                 "connector",

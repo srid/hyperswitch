@@ -224,14 +224,14 @@ where
             logger::debug!(kv_operation= %operation, status="success");
             let keyvalue = router_env::opentelemetry::KeyValue::new("operation", operation.clone());
 
-            metrics::KV_OPERATION_SUCCESSFUL.add(&metrics::CONTEXT, 1, &[keyvalue]);
+            metrics::KV_OPERATION_SUCCESSFUL.add(1, &[keyvalue]);
             result
         })
         .map_err(|err| {
             logger::error!(kv_operation = %operation, status="error", error = ?err);
             let keyvalue = router_env::opentelemetry::KeyValue::new("operation", operation);
 
-            metrics::KV_OPERATION_FAILED.add(&metrics::CONTEXT, 1, &[keyvalue]);
+            metrics::KV_OPERATION_FAILED.add(1, &[keyvalue]);
             err
         })
 }

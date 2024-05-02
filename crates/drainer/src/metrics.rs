@@ -1,9 +1,6 @@
 pub use router_env::opentelemetry::KeyValue;
-use router_env::{
-    counter_metric, global_meter, histogram_metric, histogram_metric_i64, metrics_context,
-};
+use router_env::{counter_metric, global_meter, histogram_metric, histogram_metric_i64};
 
-metrics_context!(CONTEXT);
 global_meter!(DRAINER_METER, "DRAINER");
 
 counter_metric!(JOBS_PICKED_PER_STREAM, DRAINER_METER);

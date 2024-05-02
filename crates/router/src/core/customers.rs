@@ -336,7 +336,7 @@ pub async fn delete_customer(
         address_deleted: true,
         payment_methods_deleted: true,
     };
-    metrics::CUSTOMER_REDACTED.add(&metrics::CONTEXT, 1, &[]);
+    metrics::CUSTOMER_REDACTED.add(1, &[]);
     Ok(services::ApplicationResponse::Json(response))
 }
 

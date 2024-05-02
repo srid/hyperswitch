@@ -11,13 +11,9 @@ where
     F: futures::Future<Output = R>,
 {
     let key = "request_type";
-    super::REQUESTS_RECEIVED.add(&super::CONTEXT, 1, &[add_attributes(key, flow.to_string())]);
+    super::REQUESTS_RECEIVED.add(1, &[add_attributes(key, flow.to_string())]);
     let (result, time) = metric_utils::time_future(future).await;
-    super::REQUEST_TIME.record(
-        &super::CONTEXT,
-        time.as_secs_f64(),
-        &[add_attributes(key, flow.to_string())],
-    );
+    super::REQUEST_TIME.record(time.as_secs_f64(), &[add_attributes(key, flow.to_string())]);
     result
 }
 
@@ -31,7 +27,7 @@ where
     F: futures::Future<Output = R>,
 {
     let (result, time) = metric_utils::time_future(future).await;
-    metric.record(&super::CONTEXT, time.as_secs_f64(), key_value);
+    metric.record(time.as_secs_f64(), key_value);
     result
 }
 
@@ -44,7 +40,6 @@ pub fn add_attributes<T: Into<router_env::opentelemetry::Value>>(
 
 pub fn status_code_metrics(status_code: i64, flow: String, merchant_id: String) {
     super::REQUEST_STATUS.add(
-        &super::CONTEXT,
         1,
         &[
             add_attributes("status_code", status_code),

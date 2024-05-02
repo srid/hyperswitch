@@ -147,7 +147,7 @@ pub async fn consumer_operations<T: SchedulerAppState + 'static>(
 
         pt_utils::add_histogram_metrics(&pickup_time, task, &stream_name);
 
-        metrics::TASK_CONSUMED.add(&metrics::CONTEXT, 1, &[]);
+        metrics::TASK_CONSUMED.add(1, &[]);
 
         handler.push(tokio::task::spawn(start_workflow(
             state.clone(),
@@ -228,7 +228,7 @@ where
             logger::error!(?error, "Failed to trigger workflow");
             error
         });
-    metrics::TASK_PROCESSED.add(&metrics::CONTEXT, 1, &[]);
+    metrics::TASK_PROCESSED.add(1, &[]);
     res
 }
 

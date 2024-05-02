@@ -175,7 +175,6 @@ pub trait ConnectorIntegration<T, Req, Resp>: ConnectorIntegrationAny<T, Req, Re
         _connectors: &Connectors,
     ) -> CustomResult<Option<Request>, errors::ConnectorError> {
         metrics::UNIMPLEMENTED_FLOW.add(
-            &metrics::CONTEXT,
             1,
             &[metrics::request::add_attributes(
                 "connector",
@@ -326,7 +325,6 @@ where
         }
         payments::CallConnectorAction::Trigger => {
             metrics::CONNECTOR_CALL_COUNT.add(
-                &metrics::CONTEXT,
                 1,
                 &[
                     metrics::request::add_attributes("connector", req.connector.to_string()),
@@ -352,7 +350,6 @@ where
                                 | &errors::ConnectorError::RequestEncodingFailedWithReason(_)
                         ) {
                             metrics::REQUEST_BUILD_FAILURE.add(
-                                &metrics::CONTEXT,
                                 1,
                                 &[metrics::request::add_attributes(
                                     "connector",
@@ -420,7 +417,6 @@ where
                                             == &errors::ConnectorError::ResponseDeserializationFailed
                                         {
                                             metrics::RESPONSE_DESERIALIZATION_FAILURE.add(
-                                                &metrics::CONTEXT,
                                                 1,
                                                 &[metrics::request::add_attributes(
                                                     "connector",
@@ -461,7 +457,6 @@ where
                                             .map_or(external_latency, |val| val + external_latency),
                                     );
                                     metrics::CONNECTOR_ERROR_RESPONSE_COUNT.add(
-                                        &metrics::CONTEXT,
                                         1,
                                         &[metrics::request::add_attributes(
                                             "connector",
@@ -662,11 +657,11 @@ pub async fn send_request(
             .await
             .map_err(|error| match error {
                 error if error.is_timeout() => {
-                    metrics::REQUEST_BUILD_FAILURE.add(&metrics::CONTEXT, 1, &[]);
+                    metrics::REQUEST_BUILD_FAILURE.add(1, &[]);
                     errors::ApiClientError::RequestTimeoutReceived
                 }
                 error if is_connection_closed_before_message_could_complete(&error) => {
-                    metrics::REQUEST_BUILD_FAILURE.add(&metrics::CONTEXT, 1, &[]);
+                    metrics::REQUEST_BUILD_FAILURE.add(1, &[]);
                     errors::ApiClientError::ConnectionClosedIncompleteMessage
                 }
                 _ => errors::ApiClientError::RequestNotSent(error.to_string()),
@@ -680,11 +675,11 @@ pub async fn send_request(
             .await
             .map_err(|error| match error {
                 error if error.is_timeout() => {
-                    metrics::REQUEST_BUILD_FAILURE.add(&metrics::CONTEXT, 1, &[]);
+                    metrics::REQUEST_BUILD_FAILURE.add(1, &[]);
                     errors::ApiClientError::RequestTimeoutReceived
                 }
                 error if is_connection_closed_before_message_could_complete(&error) => {
-                    metrics::REQUEST_BUILD_FAILURE.add(&metrics::CONTEXT, 1, &[]);
+                    metrics::REQUEST_BUILD_FAILURE.add(1, &[]);
                     errors::ApiClientError::ConnectionClosedIncompleteMessage
                 }
                 _ => errors::ApiClientError::RequestNotSent(error.to_string()),
@@ -713,7 +708,7 @@ pub async fn send_request(
             if error.current_context()
                 == &errors::ApiClientError::ConnectionClosedIncompleteMessage =>
         {
-            metrics::AUTO_RETRY_CONNECTION_CLOSED.add(&metrics::CONTEXT, 1, &[]);
+            metrics::AUTO_RETRY_CONNECTION_CLOSED.add(1, &[]);
             match cloned_send_request {
                 Some(cloned_request) => {
                     logger::info!(

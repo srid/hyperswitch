@@ -662,11 +662,8 @@ fn get_xml_deserialized(
     res: Response,
     event_builder: Option<&mut ConnectorEvent>,
 ) -> CustomResult<ErrorResponse, errors::ConnectorError> {
-    metrics::RESPONSE_DESERIALIZATION_FAILURE.add(
-        &metrics::CONTEXT,
-        1,
-        &[metrics::request::add_attributes("connector", "boku")],
-    );
+    metrics::RESPONSE_DESERIALIZATION_FAILURE
+        .add(1, &[metrics::request::add_attributes("connector", "boku")]);
 
     let response_data = String::from_utf8(res.response.to_vec())
         .change_context(errors::ConnectorError::ResponseDeserializationFailed)?;

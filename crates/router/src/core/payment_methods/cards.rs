@@ -1044,7 +1044,7 @@ pub async fn add_card_to_locker(
     ),
     errors::VaultError,
 > {
-    metrics::STORED_TO_LOCKER.add(&metrics::CONTEXT, 1, &[]);
+    metrics::STORED_TO_LOCKER.add(1, &[]);
     let add_card_to_hs_resp = request::record_operation_time(
         async {
             add_card_hs(
@@ -1059,7 +1059,6 @@ pub async fn add_card_to_locker(
             .await
             .map_err(|error| {
                 metrics::CARD_LOCKER_FAILURES.add(
-                    &metrics::CONTEXT,
                     1,
                     &[
                         router_env::opentelemetry::KeyValue::new("locker", "rust"),
@@ -1084,7 +1083,7 @@ pub async fn get_card_from_locker(
     merchant_id: &str,
     card_reference: &str,
 ) -> errors::RouterResult<Card> {
-    metrics::GET_FROM_LOCKER.add(&metrics::CONTEXT, 1, &[]);
+    metrics::GET_FROM_LOCKER.add(1, &[]);
 
     let get_card_from_rs_locker_resp = request::record_operation_time(
         async {
@@ -1100,7 +1099,6 @@ pub async fn get_card_from_locker(
             .attach_printable("Failed while getting card from hyperswitch card vault")
             .map_err(|error| {
                 metrics::CARD_LOCKER_FAILURES.add(
-                    &metrics::CONTEXT,
                     1,
                     &[
                         router_env::opentelemetry::KeyValue::new("locker", "rust"),
@@ -1125,14 +1123,14 @@ pub async fn delete_card_from_locker(
     merchant_id: &str,
     card_reference: &str,
 ) -> errors::RouterResult<payment_methods::DeleteCardResp> {
-    metrics::DELETE_FROM_LOCKER.add(&metrics::CONTEXT, 1, &[]);
+    metrics::DELETE_FROM_LOCKER.add(1, &[]);
 
     request::record_operation_time(
         async move {
             delete_card_from_hs_locker(state, customer_id, merchant_id, card_reference)
                 .await
                 .map_err(|error| {
-                    metrics::CARD_LOCKER_FAILURES.add(&metrics::CONTEXT, 1, &[]);
+                    metrics::CARD_LOCKER_FAILURES.add(1, &[]);
                     error
                 })
         },
@@ -3925,9 +3923,8 @@ impl TempLockerCardSupport {
             enums::PaymentMethod::Card,
         )
         .await?;
-        metrics::TOKENIZED_DATA_COUNT.add(&metrics::CONTEXT, 1, &[]);
+        metrics::TOKENIZED_DATA_COUNT.add(1, &[]);
         metrics::TASKS_ADDED_COUNT.add(
-            &metrics::CONTEXT,
             1,
             &[metrics::request::add_attributes(
                 "flow",

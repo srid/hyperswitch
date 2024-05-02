@@ -126,7 +126,6 @@ impl ProcessTrackerWorkflow<AppState> for ApiKeyExpiryWorkflow {
                 .await?;
             // Remaining tasks are re-scheduled, so will be resetting the added count
             metrics::TASKS_RESET_COUNT.add(
-                &metrics::CONTEXT,
                 1,
                 &[metrics::request::add_attributes("flow", "ApiKeyExpiry")],
             );
