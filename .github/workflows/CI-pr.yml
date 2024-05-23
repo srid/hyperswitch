@@ -257,11 +257,11 @@ jobs:
           tool: cargo-hack
           checksum: true
 
-      # - name: Install cargo-nextest
-      #   uses: taiki-e/install-action@v2.33.28
-      #   with:
-      #     tool: cargo-nextest
-      #     checksum: true
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2.33.28
+        with:
+          tool: cargo-nextest
+          checksum: true
 
       # - name: Setup Embark Studios lint rules
       #   shell: bash
@@ -340,6 +340,23 @@ jobs:
             cargo hack check --each-feature --all-targets --package "${package}"
             echo '::endgroup::'
           done
+
+      - name: Run unit and documentation tests
+        shell: bash
+        # `cargo` does not allow us to exclude specific features from all features,
+        # so we're using `cargo metadata` to obtain all features from all workspace crates
+        # and exclude specific features from the list.
+        run: |
+          FEATURES=$(cargo metadata --all-features --format-version 1 | \
+            jq -r '
+              [ ( .workspace_members | sort ) as $package_ids # Store workspace crate package IDs in `package_ids` array
+              | .packages[] | select( IN(.id; $package_ids[]) ) | .features | keys[] ] | unique # Select all unique features from all workspace crates
+              | del( .[] | select( any( . ; . == ("aws_kms", "aws_s3", "release") ) ) ) # Exclude some features from features list
+              | join(",") # Construct a comma-separated string of features for passing to `cargo`
+            ')
+
+          cargo nextest run --config-file .github/nextest.toml --profile ci -E 'kind(lib)' --features "${FEATURES}"
+          cargo test --doc --features "${FEATURES}"
 
   typos:
     name: Spell check
