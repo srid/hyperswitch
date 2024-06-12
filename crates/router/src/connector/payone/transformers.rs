@@ -36,12 +36,7 @@ pub struct PayoneRouterData<T> {
 }
 
 impl<T> From<(MinorUnit, T)> for PayoneRouterData<T> {
-    fn from(
-        ( amount, item): (
-            MinorUnit,
-            T,
-        ),
-    ) -> Self {
+    fn from((amount, item): (MinorUnit, T)) -> Self {
         Self {
             amount,
             router_data: item,

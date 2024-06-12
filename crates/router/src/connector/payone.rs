@@ -3,9 +3,7 @@ pub mod transformers;
 use base64::Engine;
 #[cfg(feature = "payouts")]
 use common_utils::request::RequestContent;
-use common_utils::types::AmountConvertor;
-use common_utils::types::MinorUnit;
-use common_utils::types::MinorUnitForConnector;
+use common_utils::types::{AmountConvertor, MinorUnit, MinorUnitForConnector};
 use error_stack::{report, ResultExt};
 use masking::{ExposeInterface, PeekInterface};
 use ring::hmac;
@@ -42,7 +40,6 @@ use crate::{
 pub struct Payone {
     amount_converter: &'static (dyn AmountConvertor<Output = MinorUnit> + Sync),
 }
-
 
 impl Payone {
     pub fn new() -> &'static Self {
