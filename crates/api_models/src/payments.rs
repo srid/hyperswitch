@@ -3952,7 +3952,6 @@ pub struct OrderDetailsWithAmount {
 
     //minor amount change for OrderDetailsWithAmount
     pub minor_amount: MinorUnit,
-
 }
 
 #[derive(Debug, Default, Eq, PartialEq, serde::Deserialize, serde::Serialize, Clone, ToSchema)]
